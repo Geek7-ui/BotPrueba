@@ -39,7 +39,7 @@ puppeteer.use(StealthPlugin());
     await page.type('#auth-password', process.env.PASSWORD, { delay: 100 });
     
     // Esperar un momento antes del reCAPTCHA
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     console.log('🤖 Buscando reCAPTCHA...');
     // Buscar y hacer clic en el reCAPTCHA
@@ -59,7 +59,7 @@ puppeteer.use(StealthPlugin());
         console.log('✅ reCAPTCHA clicked');
         
         // Esperar a que se resuelva el reCAPTCHA
-        await page.waitForTimeout(3000);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     } catch (error) {
       console.log('⚠️ No se encontró reCAPTCHA o ya está resuelto:', error.message);
@@ -89,7 +89,7 @@ puppeteer.use(StealthPlugin());
     await page.click('a.billing-button.renew.pseudo');
     
     // Esperar a que se procese la renovación
-    await page.waitForTimeout(3000);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     console.log('✅ Renovación completada exitosamente!');
     
