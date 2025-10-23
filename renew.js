@@ -38,6 +38,10 @@ puppeteer.use(StealthPlugin());
     // Ingresar password
     await page.type('#auth-password', process.env.PASSWORD, { delay: 100 });
     
+    // Tomar screenshot antes de intentar login
+    await page.screenshot({ path: 'before-login.png' });
+    console.log('📸 Screenshot antes del login guardado');
+    
     // Esperar un momento antes del reCAPTCHA
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -66,6 +70,18 @@ puppeteer.use(StealthPlugin());
     }
     
     console.log('🔑 Haciendo login...');
+    
+    // Verificar que los campos tengan valores antes de hacer clic
+    const hasUsername = await page.$eval('#auth-username', el => el.value.length > 0);
+    const hasPassword = await page.$eval('#auth-password', el => el.value.length > 0);
+    
+    console.log('✓ Username filled:', hasUsername);
+    console.log('✓ Password filled:', hasPassword);
+    
+    if (!hasUsername || !hasPassword) {
+      throw new Error('Los campos no se llenaron correctamente');
+    }
+    
     // Hacer clic en el botón de login
     await Promise.all([
       page.click('button[action="login"]'),
