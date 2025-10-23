@@ -1,0 +1,11 @@
+{
+  "name": "mc-auto-renew",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  }
+}
