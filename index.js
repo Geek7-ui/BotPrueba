@@ -1,63 +1,48 @@
-const puppeteer = require('puppeteer');
+import puppeteer from "puppeteer";
+
+const USERNAME = process.env.MCSERVER_USER;
+const PASSWORD = process.env.MCSERVER_PASS;
+const SERVER_ID = "14df21d0"; // cambia esto si tu ID es diferente
 
 (async () => {
-  const LOGIN_URL = 'https://www.mcserverhost.com/login';
-  const DASHBOARD_URL = 'https://www.mcserverhost.com/servers/14df21d0/dashboard';
-
-  const USER = process.env.MC_USER;
-  const PASS = process.env.MC_PASS;
-
-  if (!USER || !PASS) {
-    console.error('⚠️  MC_USER o MC_PASS no definidos.');
-    process.exit(1);
-  }
-
+  console.log("➡️ Iniciando navegador...");
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
+  const page = await browser.newPage();
+
   try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1366, height: 768 });
+    console.log("➡️ Abriendo página de login...");
+    await page.goto("https://www.mcserverhost.com/login", { waitUntil: "networkidle2" });
 
-    console.log('➡️ Abriendo login...');
-    await page.goto(LOGIN_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+    console.log("✍️ Ingresando credenciales...");
+    await page.type("#auth-username", USERNAME, { delay: 100 });
+    await page.type("#auth-password", PASSWORD, { delay: 100 });
 
-    console.log('✍️ Ingresando credenciales...');
-    await page.waitForSelector('#auth-username', { timeout: 10000 });
-    await page.type('#auth-username', USER, { delay: 50 });
-    await page.type('#auth-password', PASS, { delay: 50 });
+    console.log("🔐 Haciendo clic en LOGIN...");
+    await page.click('button[action="login"]');
+    await new Promise(resolve => setTimeout(resolve, 5000)); // espera para que cargue la sesión
 
-    console.log('🔐 Haciendo clic en LOGIN...');
-    await page.evaluate(() => {
-      const btn = document.querySelector('button[action="login"]');
-      if (btn) btn.click();
+    console.log("⏳ Abriendo dashboard...");
+    await page.goto(`https://www.mcserverhost.com/servers/${SERVER_ID}/dashboard`, {
+      waitUntil: "networkidle2",
     });
 
-    try {
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
-    } catch (e) {
-      console.log('⚠️ No hubo navegación completa (posible recarga con JS)');
-    }
+    console.log("♻️ Esperando botón RENEW...");
+    await page.waitForSelector("a.billing-button.renew.pseudo", { timeout: 15000 });
 
-    console.log('⏳ Abriendo dashboard...');
-    await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+    console.log("🖱️ Haciendo clic en RENEW...");
+    await page.click("a.billing-button.renew.pseudo");
 
-    console.log('♻️ Esperando botón RENEW...');
-    await page.waitForSelector('a.billing-button.renew.pseudo', { timeout: 15000 });
+    await new Promise(resolve => setTimeout(resolve, 5000)); // espera que el clic se procese
 
-    console.log('🖱️ Haciendo clic en RENEW...');
-    await page.evaluate(() => {
-      const a = document.querySelector('a.billing-button.renew.pseudo');
-      if (a) a.click();
-    });
-
-    await page.waitForTimeout(4000);
-    console.log('✅ Renovación realizada:', new Date().toISOString());
+    console.log("✅ Renovación completada con éxito.");
   } catch (err) {
-    console.error('❌ Error:', err.message);
+    console.error("❌ Error durante la ejecución:", err);
   } finally {
     await browser.close();
+    console.log("🔚 Proceso terminado.");
   }
 })();
