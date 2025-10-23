@@ -95,22 +95,40 @@ puppeteer.use(StealthPlugin());
     
     console.log('✅ Login completado');
     
-    // Esperar 15 segundos adicionales antes de navegar al dashboard
-    console.log('⏳ Esperando 15 segundos más antes de ir al dashboard...');
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    // Esperar a que aparezca el botón del servidor después del login
+    console.log('🔍 Buscando el servidor VastFate...');
     
-    // Navegar al dashboard del servidor
-    console.log('📊 Navegando al dashboard...');
+    try {
+      // Esperar a que aparezca el enlace del servidor
+      await page.waitForSelector('a#server-14df21d0', { timeout: 20000 });
+      console.log('✅ Servidor encontrado!');
+      
+      // Hacer clic en el servidor para ir al dashboard
+      await page.click('a#server-14df21d0');
+      console.log('🖱️ Click en el servidor VastFate');
+      
+      // Esperar a que navegue al dashboard
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+      
+    } catch (error) {
+      console.log('⚠️ No se encontró con el selector ID, intentando alternativas...');
+      
+      // Intentar con el href
+      const serverLink = await page.$('a[href="/servers/14df21d0/dashboard"]');
+      if (serverLink) {
+        console.log('✅ Servidor encontrado por href');
+        await serverLink.click();
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+      } else {
+        throw new Error('No se pudo encontrar el enlace del servidor');
+      }
+    }
     
-    // Esperar antes de navegar
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('📊 Navegado al dashboard del servidor');
     
-    await page.goto('https://www.mcserverhost.com/servers/14df21d0/dashboard', {
-      waitUntil: 'networkidle2',
-      timeout: 40000
-    });
+    console.log('📊 Navegado al dashboard del servidor');
     
-    // Esperar a que la página cargue completamente
+    // Esperar a que la página del dashboard cargue completamente
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Tomar screenshot del dashboard
