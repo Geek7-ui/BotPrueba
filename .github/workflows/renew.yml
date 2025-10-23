@@ -20,3 +20,12 @@ jobs:
           MCSERVER_USER: ${{ secrets.MCSERVER_USER }}
           MCSERVER_PASS: ${{ secrets.MCSERVER_PASS }}
         run: npm start
+
+      - name: Subir captura de pantalla
+        if: always() # se sube aunque falle o no
+        uses: actions/upload-artifact@v4
+        with:
+          name: captura-login
+          path: |
+            after_login.png
+            error_screenshot.png
