@@ -95,6 +95,10 @@ puppeteer.use(StealthPlugin());
     
     console.log('✅ Login completado');
     
+    // Esperar 15 segundos adicionales antes de navegar al dashboard
+    console.log('⏳ Esperando 15 segundos más antes de ir al dashboard...');
+    await new Promise(resolve => setTimeout(resolve, 15000));
+    
     // Navegar al dashboard del servidor
     console.log('📊 Navegando al dashboard...');
     
