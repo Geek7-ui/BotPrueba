@@ -1,11 +1,14 @@
 {
-  "name": "mc-auto-renew",
+  "name": "mcserver-renew-bot",
   "version": "1.0.0",
-  "private": true,
+  "description": "Bot automatizado para renovar servidor en McServerHost",
+  "main": "renew.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node renew.js"
   },
   "dependencies": {
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^21.6.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
