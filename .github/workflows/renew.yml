@@ -2,9 +2,9 @@ name: Auto Renew Server
 
 on:
   schedule:
-    # cada 7 horas (cron en UTC)
+    # Cada 7 horas (00:00, 07:00, 14:00, 21:00 UTC)
     - cron: '0 */7 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # permite ejecutarlo manualmente
 
 jobs:
   renew:
@@ -12,15 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Instalar Puppeteer
+        run: npm install puppeteer
 
-      - name: Run renew script
+      - name: Ejecutar script de renovación
         env:
           MC_USER: ${{ secrets.MC_USER }}
           MC_PASS: ${{ secrets.MC_PASS }}
