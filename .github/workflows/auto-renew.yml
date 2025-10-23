@@ -3,14 +3,14 @@ name: Auto Renew McServerHost
 on:
   schedule:
     # Ejecutar cada hora (cada 60 minutos)
-    - cron: '0 * * * *'
+    - cron: '0 * * * *'sftrtretrhtrg
   workflow_dispatch: # Permite ejecutar manualmente
 
-jobs:
+jobs:ergerg
   renew-server:
-    runs-on: ubuntu-latest
-    
-    steps:
+    runs-on: ubuntu-latestregregerger
+    gre
+    steps:gwg
     - name: Checkout repository
       uses: actions/checkout@v4
     
