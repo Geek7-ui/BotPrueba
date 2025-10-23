@@ -23,184 +23,148 @@ puppeteer.use(StealthPlugin());
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     
     console.log('🔄 Navegando a la página de login...');
-    await page.goto('https://www.mcserverhost.com/login', {
+    await page.goto('https://panel.freegamehost.xyz/auth/login', {
       waitUntil: 'networkidle2',
       timeout: 30000
     });
 
     // Esperar a que cargue el formulario
-    await page.waitForSelector('#auth-username', { timeout: 10000 });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    console.log('🔍 Buscando campos de login...');
+    
+    // Buscar el campo de username/email - probamos diferentes selectores
+    let usernameInput = await page.$('input[name="username"]') || 
+                       await page.$('input[type="text"]') ||
+                       await page.$('input[placeholder*="Username"]') ||
+                       await page.$('input[placeholder*="Email"]');
+    
+    if (!usernameInput) {
+      // Listar todos los inputs para debugging
+      const inputs = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('input')).map(input => ({
+          type: input.type,
+          name: input.name,
+          id: input.id,
+          placeholder: input.placeholder,
+          class: input.className
+        }));
+      });
+      console.log('📋 Inputs encontrados:', JSON.stringify(inputs, null, 2));
+      throw new Error('No se encontró el campo de username');
+    }
     
     console.log('📝 Ingresando credenciales...');
-    // Ingresar username
-    await page.type('#auth-username', process.env.USERNAME, { delay: 100 });
+    
+    // Ingresar username/email
+    await usernameInput.click();
+    await usernameInput.type(process.env.USERNAME, { delay: 100 });
+    
+    // Buscar el campo de password
+    let passwordInput = await page.$('input[name="password"]') || 
+                       await page.$('input[type="password"]');
+    
+    if (!passwordInput) {
+      throw new Error('No se encontró el campo de password');
+    }
     
     // Ingresar password
-    await page.type('#auth-password', process.env.PASSWORD, { delay: 100 });
+    await passwordInput.click();
+    await passwordInput.type(process.env.PASSWORD, { delay: 100 });
     
-    // Tomar screenshot antes de intentar login
+    // Tomar screenshot antes de hacer login
     await page.screenshot({ path: 'before-login.png' });
     console.log('📸 Screenshot antes del login guardado');
     
-    // Esperar un momento antes del reCAPTCHA
+    // Esperar un momento
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('🤖 Buscando reCAPTCHA...');
-    // Buscar y hacer clic en el reCAPTCHA
-    try {
-      // Esperar al iframe del reCAPTCHA
-      const recaptchaFrame = await page.waitForSelector('iframe[src*="recaptcha"]', {
-        timeout: 10000
-      });
-      
-      if (recaptchaFrame) {
-        const frame = await recaptchaFrame.contentFrame();
-        
-        // Hacer clic en el checkbox del reCAPTCHA
-        await frame.waitForSelector('.recaptcha-checkbox-border', { timeout: 5000 });
-        await frame.click('.recaptcha-checkbox-border');
-        
-        console.log('✅ reCAPTCHA clicked');
-        
-        // Esperar a que se resuelva el reCAPTCHA
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-    } catch (error) {
-      console.log('⚠️ No se encontró reCAPTCHA o ya está resuelto:', error.message);
-    }
     
     console.log('🔑 Haciendo login...');
     
-    // Verificar que los campos tengan valores antes de hacer clic
-    const hasUsername = await page.$eval('#auth-username', el => el.value.length > 0);
-    const hasPassword = await page.$eval('#auth-password', el => el.value.length > 0);
+    // Buscar y hacer clic en el botón de login
+    const loginButton = await page.$('button[type="submit"]');
     
-    console.log('✓ Username filled:', hasUsername);
-    console.log('✓ Password filled:', hasPassword);
-    
-    if (!hasUsername || !hasPassword) {
-      throw new Error('Los campos no se llenaron correctamente');
+    if (!loginButton) {
+      throw new Error('No se encontró el botón de login');
     }
     
-    // Hacer clic en el botón de login
-    await Promise.all([
-      page.click('button[action="login"]'),
-      // Esperar navegación O cambio en la URL O timeout
-      Promise.race([
-        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null),
-        page.waitForFunction(() => window.location.href.includes('/servers'), { timeout: 15000 }).catch(() => null),
-        new Promise(resolve => setTimeout(resolve, 10000))
-      ])
-    ]);
+    await loginButton.click();
     
-    console.log('✅ Login completado');
+    console.log('⏳ Esperando que el login se procese...');
     
-    // Esperar a que aparezca el botón del servidor después del login
-    console.log('🔍 Buscando el servidor VastFate...');
-    
+    // Esperar a que la navegación se complete o timeout
     try {
-      // Esperar a que aparezca el enlace del servidor
-      await page.waitForSelector('a#server-14df21d0', { timeout: 20000 });
-      console.log('✅ Servidor encontrado!');
-      
-      // Hacer clic en el servidor para ir al dashboard
-      await page.click('a#server-14df21d0');
-      console.log('🖱️ Click en el servidor VastFate');
-      
-      // Esperar a que navegue al dashboard
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
-      
-    } catch (error) {
-      console.log('⚠️ No se encontró con el selector ID, intentando alternativas...');
-      
-      // Intentar con el href
-      const serverLink = await page.$('a[href="/servers/14df21d0/dashboard"]');
-      if (serverLink) {
-        console.log('✅ Servidor encontrado por href');
-        await serverLink.click();
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
-      } else {
-        throw new Error('No se pudo encontrar el enlace del servidor');
-      }
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+    } catch (e) {
+      console.log('⚠️ No hubo navegación, esperando 10 segundos...');
+      await new Promise(resolve => setTimeout(resolve, 10000));
     }
     
-    console.log('📊 Navegado al dashboard del servidor');
-    
-    console.log('📊 Navegado al dashboard del servidor');
-    
-    // Esperar a que la página del dashboard cargue completamente
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Tomar screenshot del dashboard
-    await page.screenshot({ path: 'dashboard.png' });
-    console.log('📸 Screenshot del dashboard guardado');
-    
-    // Verificar si seguimos logueados
     const currentUrl = page.url();
     console.log('📍 URL actual:', currentUrl);
     
-    if (currentUrl.includes('/login')) {
-      console.log('❌ Parece que el login falló - fuimos redirigidos al login');
-      throw new Error('Login failed - redirected to login page');
-    }
+    console.log('✅ Login completado');
     
-    // Esperar al botón RENEW con más tiempo y mejor manejo
-    console.log('🔍 Buscando botón RENEW...');
+    // Navegar al servidor
+    console.log('🖥️ Navegando al servidor...');
+    await page.goto('https://panel.freegamehost.xyz/server/bb865b8a', {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
     
-    // Primero intentar con el selector exacto
-    let renewButton = await page.$('a.billing-button.renew.pseudo');
-    
-    // Si no lo encuentra, intentar selectores alternativos
-    if (!renewButton) {
-      console.log('⚠️ Selector exacto no encontrado, probando alternativas...');
-      
-      // Obtener todos los enlaces que contengan "RENEW"
-      const allLinks = await page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll('a'));
-        return links.map(link => ({
-          text: link.textContent.trim(),
-          class: link.className,
-          onclick: link.getAttribute('onclick')
-        }));
-      });
-      
-      console.log('🔗 Enlaces encontrados:', JSON.stringify(allLinks.slice(0, 10), null, 2));
-      
-      // Intentar encontrar por texto
-      renewButton = await page.$x("//a[contains(text(), 'RENEW')]");
-      
-      if (renewButton.length > 0) {
-        console.log('✅ Botón encontrado usando XPath');
-        renewButton = renewButton[0];
-      } else {
-        // Último intento: buscar cualquier elemento con onclick que contenga 'subscription'
-        renewButton = await page.$('a[onclick*="subscription"]');
-        if (renewButton) {
-          console.log('✅ Botón encontrado usando onclick');
-        }
-      }
-    }
-    
-    if (!renewButton) {
-      console.log('❌ No se pudo encontrar el botón RENEW con ningún método');
-      throw new Error('RENEW button not found');
-    }
-    
-    console.log('🔄 Haciendo clic en RENEW...');
-    // Hacer clic en el botón RENEW
-    if (Array.isArray(renewButton)) {
-      await renewButton.click();
-    } else {
-      await page.evaluate(btn => btn.click(), renewButton);
-    }
-    
-    // Esperar a que se procese la renovación
+    // Esperar a que cargue la página del servidor
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    console.log('✅ Renovación completada exitosamente!');
+    // Tomar screenshot del servidor
+    await page.screenshot({ path: 'server-page.png' });
+    console.log('📸 Screenshot de la página del servidor guardado');
     
-    // Tomar screenshot de confirmación
+    console.log('🔍 Buscando botón "Add 8 hours"...');
+    
+    // Buscar el botón por el texto
+    const button = await page.evaluateHandle(() => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      return buttons.find(btn => {
+        const span = btn.querySelector('span');
+        return span && span.textContent.includes('Add 8 hours');
+      });
+    });
+    
+    if (!button || !button.asElement()) {
+      console.log('⚠️ No se encontró con el método 1, probando alternativas...');
+      
+      // Intentar con XPath
+      const buttons = await page.$x("//button[.//span[contains(text(), 'Add 8 hours')]]");
+      
+      if (buttons.length > 0) {
+        console.log('✅ Botón encontrado con XPath');
+        await buttons[0].click();
+      } else {
+        // Listar todos los botones para debugging
+        const allButtons = await page.evaluate(() => {
+          return Array.from(document.querySelectorAll('button')).map(btn => ({
+            text: btn.textContent.trim(),
+            class: btn.className
+          }));
+        });
+        console.log('🔘 Botones encontrados:', JSON.stringify(allButtons, null, 2));
+        throw new Error('No se encontró el botón "Add 8 hours"');
+      }
+    } else {
+      console.log('✅ Botón "Add 8 hours" encontrado');
+      await button.asElement().click();
+    }
+    
+    console.log('✅ Click en "Add 8 hours" exitoso!');
+    
+    // Esperar a que se procese
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Tomar screenshot final
     await page.screenshot({ path: 'success.png' });
+    console.log('📸 Screenshot final guardado');
+    
+    console.log('✅ Proceso completado exitosamente!');
     
   } catch (error) {
     console.error('❌ Error durante la ejecución:', error);
