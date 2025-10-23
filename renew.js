@@ -97,10 +97,17 @@ puppeteer.use(StealthPlugin());
     
     // Navegar al dashboard del servidor
     console.log('📊 Navegando al dashboard...');
+    
+    // Esperar antes de navegar
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     await page.goto('https://www.mcserverhost.com/servers/14df21d0/dashboard', {
       waitUntil: 'networkidle2',
-      timeout: 30000
+      timeout: 40000
     });
+    
+    // Esperar a que la página cargue completamente
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Tomar screenshot del dashboard
     await page.screenshot({ path: 'dashboard.png' });
