@@ -86,12 +86,68 @@ puppeteer.use(StealthPlugin());
       timeout: 30000
     });
     
-    // Esperar al botón RENEW
-    await page.waitForSelector('a.billing-button.renew.pseudo', { timeout: 10000 });
+    // Tomar screenshot del dashboard
+    await page.screenshot({ path: 'dashboard.png' });
+    console.log('📸 Screenshot del dashboard guardado');
+    
+    // Verificar si seguimos logueados
+    const currentUrl = page.url();
+    console.log('📍 URL actual:', currentUrl);
+    
+    if (currentUrl.includes('/login')) {
+      console.log('❌ Parece que el login falló - fuimos redirigidos al login');
+      throw new Error('Login failed - redirected to login page');
+    }
+    
+    // Esperar al botón RENEW con más tiempo y mejor manejo
+    console.log('🔍 Buscando botón RENEW...');
+    
+    // Primero intentar con el selector exacto
+    let renewButton = await page.$('a.billing-button.renew.pseudo');
+    
+    // Si no lo encuentra, intentar selectores alternativos
+    if (!renewButton) {
+      console.log('⚠️ Selector exacto no encontrado, probando alternativas...');
+      
+      // Obtener todos los enlaces que contengan "RENEW"
+      const allLinks = await page.evaluate(() => {
+        const links = Array.from(document.querySelectorAll('a'));
+        return links.map(link => ({
+          text: link.textContent.trim(),
+          class: link.className,
+          onclick: link.getAttribute('onclick')
+        }));
+      });
+      
+      console.log('🔗 Enlaces encontrados:', JSON.stringify(allLinks.slice(0, 10), null, 2));
+      
+      // Intentar encontrar por texto
+      renewButton = await page.$x("//a[contains(text(), 'RENEW')]");
+      
+      if (renewButton.length > 0) {
+        console.log('✅ Botón encontrado usando XPath');
+        renewButton = renewButton[0];
+      } else {
+        // Último intento: buscar cualquier elemento con onclick que contenga 'subscription'
+        renewButton = await page.$('a[onclick*="subscription"]');
+        if (renewButton) {
+          console.log('✅ Botón encontrado usando onclick');
+        }
+      }
+    }
+    
+    if (!renewButton) {
+      console.log('❌ No se pudo encontrar el botón RENEW con ningún método');
+      throw new Error('RENEW button not found');
+    }
     
     console.log('🔄 Haciendo clic en RENEW...');
     // Hacer clic en el botón RENEW
-    await page.click('a.billing-button.renew.pseudo');
+    if (Array.isArray(renewButton)) {
+      await renewButton.click();
+    } else {
+      await page.evaluate(btn => btn.click(), renewButton);
+    }
     
     // Esperar a que se procese la renovación
     await new Promise(resolve => setTimeout(resolve, 3000));
