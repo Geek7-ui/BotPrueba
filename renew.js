@@ -67,12 +67,17 @@ puppeteer.use(StealthPlugin());
     
     console.log('🔑 Haciendo login...');
     // Hacer clic en el botón de login
-    await page.click('button[action="login"]');
+    await Promise.all([
+      page.click('button[action="login"]'),
+      // Esperar navegación O cambio en la URL O timeout
+      Promise.race([
+        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null),
+        page.waitForFunction(() => window.location.href.includes('/servers'), { timeout: 15000 }).catch(() => null),
+        new Promise(resolve => setTimeout(resolve, 10000))
+      ])
+    ]);
     
-    // Esperar a que se complete el login (esperando navegación)
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
-    
-    console.log('✅ Login exitoso');
+    console.log('✅ Login completado');
     
     // Navegar al dashboard del servidor
     console.log('📊 Navegando al dashboard...');
