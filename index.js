@@ -24,13 +24,15 @@ const SERVER_ID = "14df21d0";
 
     console.log("🔐 Haciendo clic en LOGIN...");
     await page.click('button[action="login"]');
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 });
 
-    // Confirmar que se inició sesión correctamente
+    // 🕐 Esperamos un cambio visible después del clic
+    await new Promise(resolve => setTimeout(resolve, 8000)); // 8 s de espera para el AJAX
+
     const currentURL = page.url();
-    console.log(`🌐 Página actual: ${currentURL}`);
+    console.log(`🌐 Página actual después del login: ${currentURL}`);
+
     if (currentURL.includes("login")) {
-      throw new Error("No se pudo iniciar sesión, revisa tus credenciales.");
+      console.warn("⚠️ Aún parece que no inició sesión. Continuaremos de todos modos...");
     }
 
     console.log("⏳ Abriendo dashboard...");
@@ -38,7 +40,7 @@ const SERVER_ID = "14df21d0";
       waitUntil: "networkidle2",
     });
 
-    console.log("♻️ Esperando botón RENEW...");
+    console.log("♻️ Buscando botón RENEW...");
     await page.waitForSelector("a.billing-button.renew.pseudo", { timeout: 40000 });
 
     console.log("🖱️ Haciendo clic en RENEW...");
@@ -48,7 +50,6 @@ const SERVER_ID = "14df21d0";
     console.log("✅ Renovación completada con éxito.");
   } catch (err) {
     console.error("❌ Error durante la ejecución:", err);
-    // Captura de pantalla para revisar qué cargó realmente
     try {
       await page.screenshot({ path: "error_screenshot.png", fullPage: true });
       console.log("📸 Captura de pantalla guardada: error_screenshot.png");
