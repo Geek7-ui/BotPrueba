@@ -1,0 +1,37 @@
+name: Auto Renew McServerHost
+
+on:
+  schedule:
+    # Ejecutar cada hora (cada 60 minutos)
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permite ejecutar manualmente
+
+jobs:
+  renew-server:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: |
+        npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+    
+    - name: Run renewal script
+      env:
+        USERNAME: ${{ secrets.MCSERVER_USERNAME }}
+        PASSWORD: ${{ secrets.MCSERVER_PASSWORD }}
+      run: node renew.js
+    
+    - name: Upload screenshot on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: error-screenshot
+        path: error-*.png
