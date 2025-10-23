@@ -25,15 +25,12 @@ const SERVER_ID = "14df21d0";
     console.log("🔐 Haciendo clic en LOGIN...");
     await page.click('button[action="login"]');
 
-    // 🕐 Esperamos un cambio visible después del clic
-    await new Promise(resolve => setTimeout(resolve, 8000)); // 8 s de espera para el AJAX
+    // Espera para que el AJAX se procese
+    await new Promise(resolve => setTimeout(resolve, 10000));
 
-    const currentURL = page.url();
-    console.log(`🌐 Página actual después del login: ${currentURL}`);
-
-    if (currentURL.includes("login")) {
-      console.warn("⚠️ Aún parece que no inició sesión. Continuaremos de todos modos...");
-    }
+    // Captura de pantalla del login
+    await page.screenshot({ path: "./after_login.png", fullPage: true });
+    console.log("📸 Captura guardada: after_login.png");
 
     console.log("⏳ Abriendo dashboard...");
     await page.goto(`https://www.mcserverhost.com/servers/${SERVER_ID}/dashboard`, {
@@ -41,18 +38,25 @@ const SERVER_ID = "14df21d0";
     });
 
     console.log("♻️ Buscando botón RENEW...");
-    await page.waitForSelector("a.billing-button.renew.pseudo", { timeout: 40000 });
+    const renewButton = await page.$("a.billing-button.renew.pseudo");
 
-    console.log("🖱️ Haciendo clic en RENEW...");
-    await page.click("a.billing-button.renew.pseudo");
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    if (renewButton) {
+      console.log("🖱️ Botón RENEW encontrado. Haciendo clic...");
+      await renewButton.click();
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      console.log("✅ Renovación completada con éxito.");
+    } else {
+      console.log("⚠️ No se encontró el botón RENEW. Quizá ya se renovó o la sesión no inició correctamente.");
+      // Captura adicional si no se encontró
+      await page.screenshot({ path: "./no_renew_button.png", fullPage: true });
+      console.log("📸 Captura guardada: no_renew_button.png");
+    }
 
-    console.log("✅ Renovación completada con éxito.");
   } catch (err) {
     console.error("❌ Error durante la ejecución:", err);
     try {
-      await page.screenshot({ path: "error_screenshot.png", fullPage: true });
-      console.log("📸 Captura de pantalla guardada: error_screenshot.png");
+      await page.screenshot({ path: "./error_screenshot.png", fullPage: true });
+      console.log("📸 Captura guardada: error_screenshot.png");
     } catch (e) {
       console.error("No se pudo guardar la captura:", e);
     }
