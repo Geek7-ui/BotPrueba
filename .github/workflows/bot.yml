@@ -1,0 +1,25 @@
+name: Bot FreeGameHost
+
+on:
+  schedule:
+    - cron: "0 */1 * * *"   # Corre cada 1 hora
+  workflow_dispatch:        # Botón para ejecutarlo manualmente
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar repo
+      uses: actions/checkout@v3
+
+    - name: Instalar Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Instalar dependencias
+      run: npm install
+
+    - name: Ejecutar bot
+      run: node index.js
